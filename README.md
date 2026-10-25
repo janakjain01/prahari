@@ -5,6 +5,12 @@ PRAHARI is the decision layer that turns a flood warning into a route.**
 
 SIH 2026 · Disaster Management · Barpeta district, Assam (Brahmaputra basin)
 
+<p align="center">
+  <img src="docs/images/dashboard.jpg" alt="PRAHARI responder dashboard — flood map with safe evacuation routes, shelter assignments, and action cards" width="100%">
+  <br>
+  <em>Responder dashboard: flood extent (blue), safe routes (green), blocked roads (red), shelter assignments (right panel)</em>
+</p>
+
 ---
 
 ## The gap, in one table
