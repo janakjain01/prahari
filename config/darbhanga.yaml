@@ -1,0 +1,84 @@
+# PRAHARI district configuration — Darbhanga, Bihar (Bagmati / Kosi basin)
+#
+# This file exists to prove ONE claim: the pipeline is district-agnostic.
+# Nothing in the codebase is hardcoded to Assam. Swapping this YAML swaps
+# the district. Run it in the demo to convert "can this scale?" from a
+# promise into a demonstration.
+
+district:
+  id: darbhanga
+  name: Darbhanga
+  state: Bihar
+  country: IN
+  basin: Kosi-Bagmati
+  lgd_code: "215"
+  census_code: "10"
+
+grid:
+  crs: "EPSG:32645"        # UTM zone 45N — covers 84E-90E (Bihar)
+  geographic_crs: "EPSG:4326"
+  resolution_m: 30
+  bbox:
+    west: 85.70
+    south: 26.00
+    east: 86.10
+    north: 26.40
+
+hydrology:
+  # Kosi-Bagmati is a smaller, more anastomosing system than the Brahmaputra;
+  # a lower threshold keeps the distributary network in the drainage layer.
+  drainage_threshold_km2: 30.0
+  fill_depressions: true
+  max_depth_m: 8.0
+
+passability:
+  clear_m: 0.15
+  caution_m: 0.30
+  vehicle_block_m: 0.30
+  life_threatening_m: 0.60
+  caution_speed_factor: 0.4
+
+evacuation:
+  walking_speed_kmph: 4.0
+  vehicle_speed_kmph: 25.0
+  max_travel_minutes: 90
+  sqm_per_person: 3.5
+  default_shelter_capacity: 200
+  capacity_reserve_fraction: 0.10
+
+alerting:
+  languages: ["hi", "bn", "en"]     # Maithili speakers read Devanagari
+  cap:
+    sender: "prahari@ndma-demo.in"
+    sender_name: "PRAHARI Decision Layer (SIH 2026 prototype)"
+    scope: "Public"
+    status: "Exercise"
+    urgency: "Immediate"
+    severity: "Severe"
+    certainty: "Likely"
+
+sources:
+  dem:
+    provider: copernicus_dem_glo30
+    stac_collection: "cop-dem-glo-30"
+  sar:
+    provider: planetary_computer
+    stac_collection: "sentinel-1-rtc"
+    fallback_collection: "sentinel-1-grd"
+    polarizations: ["vv", "vh"]
+    max_cloud_irrelevant: true
+  population:
+    provider: worldpop
+    year: 2020
+    resolution_m: 100
+  osm:
+    shelter_tags:
+      amenity: ["school", "college", "community_centre", "hospital", "shelter"]
+      building: ["school", "civic", "public"]
+    road_network_type: "drive"
+  precipitation:
+    primary: gpm_imerg
+    fallback: open_meteo
+  forecast:
+    google_flood_hub: true
+    imd: true

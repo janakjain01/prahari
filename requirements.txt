@@ -1,0 +1,42 @@
+# PRAHARI — Flood Evacuation Decision Layer
+# Python 3.11+ required. Tested on 3.13 (Anaconda).
+#
+# TIER 1 — decision core. The pruning / assignment / routing engine runs on
+# these alone. If every other install fails, the system still works.
+numpy>=1.26
+scipy>=1.11
+networkx>=3.2
+pandas>=2.0
+pydantic>=2.5
+PyYAML>=6.0
+Jinja2>=3.1
+
+# TIER 2 — API + dashboard. Zero build step; the frontend is plain ES modules.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+
+# TIER 3 — hazard model. CPU-only torch is sufficient for inference;
+# train on Kaggle/Colab GPU and ship the checkpoint.
+torch>=2.1
+scikit-image>=0.22
+scikit-learn>=1.3
+
+# TIER 4 — geospatial ingestion. Only needed to pull REAL data.
+# Every module that imports these degrades gracefully if absent.
+shapely>=2.0
+pyproj>=3.6
+rasterio>=1.3
+geopandas>=1.0
+pyogrio>=0.7
+osmnx>=2.0
+
+# TIER 5 — remote feeds. Optional; each has a documented fallback.
+requests>=2.31
+pystac-client>=0.7
+planetary-computer>=1.0
+
+# DEV
+pytest>=7.4
+pytest-cov>=4.1
+httpx>=0.26

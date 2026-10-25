@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PRAHARI — Flood Evacuation Decision Layer</title>
+  <meta name="description" content="India can already predict floods. It still cannot tell a family which road is safe." />
+  <!-- Vendored locally on purpose: the venue wifi will fail, and a dashboard
+       that needs a CDN to draw a map is a dashboard that does not draw. -->
+  <link rel="stylesheet" href="/static/vendor/maplibre-gl.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛶</text></svg>" />
+</head>
+<body>
+
+<div id="boot" class="boot">
+  <div class="boot-inner">
+    <div class="boot-mark">PRAHARI</div>
+    <div class="boot-sub">Building the district model…</div>
+    <div class="boot-bar"><span></span></div>
+    <div class="boot-note">First run computes terrain, HAND hydrology and the road graph. Subsequent loads are cached.</div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">प्रहरी<span>PRAHARI</span></div>
+    <div class="brand-tag">Flood evacuation decision layer</div>
+  </div>
+
+  <div class="topbar-controls">
+    <label class="ctl">
+      <span>District</span>
+      <select id="district"></select>
+    </label>
+
+    <label class="ctl">
+      <span>Evacuation mode</span>
+      <div class="segmented" id="mode">
+        <button data-value="foot" class="active">On foot</button>
+        <button data-value="vehicle">By road</button>
+      </div>
+    </label>
+
+    <label class="ctl">
+      <span>Data source</span>
+      <div class="segmented" id="source">
+        <button data-value="replay" class="active">Replay</button>
+        <button data-value="real">Real satellite</button>
+      </div>
+    </label>
+
+    <label class="ctl">
+      <span>Basemap</span>
+      <div class="segmented" id="basemap">
+        <button data-value="off" class="active">Off</button>
+        <button data-value="osm">OSM</button>
+      </div>
+    </label>
+
+    <div class="ctl status-chip" id="engine-chip" title="Which hazard model is live">
+      <span class="dot"></span><span id="engine-text">connecting…</span>
+    </div>
+  </div>
+</header>
+
+<div id="disclosure" class="disclosure disclosure-synthetic">
+  <strong id="disclosure-title">DEMONSTRATION</strong>
+  <span id="disclosure-body">Loading…</span>
+</div>
+
+<main class="layout">
+
+  <section class="map-wrap">
+    <div id="map"></div>
+
+    <div class="map-legend" id="legend">
+      <div class="legend-block">
+        <div class="legend-title">Flood depth</div>
+        <div class="ramp"></div>
+        <div class="ramp-labels"><span>0</span><span>0.15</span><span>0.30</span><span>0.60</span><span>1.5 m+</span></div>
+        <div class="ramp-note">Colour changes where the ADVICE changes, not on an arbitrary gradient.</div>
+      </div>
+      <div class="legend-block">
+        <div class="legend-title">Roads</div>
+        <div class="legend-row"><i class="swatch road-clear"></i> Passable</div>
+        <div class="legend-row"><i class="swatch road-caution"></i> Caution — slow, unsafe for two-wheelers</div>
+        <div class="legend-row"><i class="swatch road-blocked"></i> Impassable to vehicles (≥0.30 m)</div>
+        <div class="legend-row"><i class="swatch road-fatal"></i> Life-threatening (≥0.60 m)</div>
+      </div>
+      <div class="legend-block">
+        <div class="legend-title">Points</div>
+        <div class="legend-row"><i class="swatch dot-shelter"></i> Shelter — ring shows how full</div>
+        <div class="legend-row"><i class="swatch dot-flooded"></i> Shelter under water — withdrawn</div>
+        <div class="legend-row"><i class="swatch dot-cutoff"></i> Cut off — boat dispatch</div>
+        <div class="legend-row"><i class="swatch line-route"></i> Evacuation route</div>
+      </div>
+    </div>
+
+    <button class="legend-toggle" id="legend-toggle" title="Toggle legend">Legend</button>
+
+    <div class="timeline" id="timeline">
+      <div class="timeline-head">
+        <div>
+          <div class="timeline-title" id="replay-title">Replay</div>
+          <div class="timeline-sub" id="replay-frame">—</div>
+        </div>
+        <div class="timeline-actions">
+          <button id="play" class="btn-play" title="Play / pause the event">▶</button>
+          <span class="timeline-hint" id="replay-disclosure"></span>
+        </div>
+      </div>
+      <input type="range" id="scrubber" min="0" max="0" value="0" step="1" />
+      <div class="stage-curve" id="stage-curve"></div>
+    </div>
+  </section>
+
+  <aside class="rail">
+
+    <div class="rail-section">
+      <div class="headline-grid" id="headline"></div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-head">
+        <h2>Boat dispatch</h2>
+        <span class="pill pill-critical" id="dispatch-count">0</span>
+      </div>
+      <p class="rail-note">
+        Settlements with <strong>no road route</strong> to any viable shelter. This list is what no
+        existing system produces — and it is deliberately kept separate from the capacity
+        shortfall below, because they are two different taskings for two different people.
+      </p>
+      <div id="dispatch-list" class="list"></div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-head">
+        <h2>Capacity shortfall</h2>
+        <span class="pill pill-warn" id="shortfall-count">0</span>
+      </div>
+      <p class="rail-note">
+        People who can reach a shelter but find no room. Not a routing failure — an ask to the
+        state for more camps.
+      </p>
+      <div id="shortfall-list" class="list"></div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-head"><h2>Shelter load</h2></div>
+      <div id="shelter-load" class="list"></div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-head"><h2>Provenance</h2></div>
+      <div id="provenance" class="prov"></div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- Citizen action card -->
+<div class="card-panel" id="card-panel" hidden>
+  <div class="card-head">
+    <div>
+      <div class="card-eyebrow">Citizen action card</div>
+      <div class="card-title" id="card-settlement">—</div>
+    </div>
+    <button id="card-close" class="btn-close" title="Close">✕</button>
+  </div>
+  <div class="lang-tabs" id="lang-tabs"></div>
+  <div class="phone">
+    <div class="phone-screen" id="card-body"></div>
+  </div>
+  <div class="card-foot" id="card-foot"></div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/static/vendor/maplibre-gl.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

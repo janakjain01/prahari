@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Runtime data — all of it is re-fetchable, none of it belongs in git.
+#   data/raw/sen1floods11   ~732 MB training data (public bucket)
+#   data/raw/worldpop       ~488 MB population raster
+#   data/cache              cached DEM / Sentinel-1 / OSM responses
+data/cache/
+data/raw/
+data/derived/
+data/out/
+
+# osmnx writes its Overpass response cache to ./cache by default — 28 MB of
+# API responses that are re-fetchable and change every time a query is made.
+cache/
+data/scenarios/*.npz
+!data/scenarios/.gitkeep
+
+# Model checkpoints are large; ship via release artefact
+models/*.pt
+models/*.pth
+!models/.gitkeep
+
+# Demo outputs
+out/
+*.log

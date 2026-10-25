@@ -1,0 +1,8 @@
+# Normalise line endings in the repo, check out native on each machine.
+# Without this, a Windows clone and a Linux clone show every file as modified.
+* text=auto eol=lf
+
+*.png binary
+*.tif binary
+*.pt binary
+*.npz binary
